@@ -1,2 +1,108 @@
 server:
-  port: 9099
+  port: ${SERVER_PORT:8083}
+
+spring:
+  application:
+    name: business-trip-service
+
+  jpa:
+    show-sql: true
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    properties:
+      hibernate:
+        format_sql: true
+
+
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    url: ${DATABASE_URL:jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5434}/${DATABASE_NAME:business-trip}}
+    username: ${DATABASE_USERNAME:admin}
+    password: ${DATABASE_PASSWORD:admin}
+
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+accounting:
+  service:
+    name: ${ACCOUNTING_SERVICE_NAME:accounting-service}
+    url: lb://${accounting.service.name}
+
+resources:
+  service:
+    name: ${RESOURCES_SERVICE_NAME:resources-service}
+    url: lb://${resources.service.name}
+
+#service-discovery
+eureka:
+  client:
+    service-url:
+      defaultZone: http://${DISCOVERY_INSTANCE_HOSTNAME:localhost}:${DISCOVERY_SERVER_PORT:8761}/eureka/
+  instance:
+    instance-id: ${spring.application.name}:${random.int}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,circuitbreakers,circuitbreakerevents
+
+logging:
+  level:
+    by:
+      javaguru:
+        jdmik15: debug
+    io.github.resilience4j.retry: debug
+    io.github.resilience4j.circuitbreaker: debug
+    io.github.resilience4j.spring6: debug
+    feign: debug
+    org.springframework.cloud.loadbalancer: debug
+
+#    org:
+#      springframework:
+#        transaction: trace
+
+resilience4j:
+  circuitbreaker:
+    circuit-breaker-aspect-order: 1
+    configs:
+      default:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 4
+        minimum-number-of-calls: 2
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true
+        record-exceptions:
+          - by.javaguru.jdmik15.businesstripservice.api.exception.RemoteServiceTechnicalException
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.io.IOException
+          - feign.FeignException.ServiceUnavailable
+    instances:
+      accounting-service:
+        base-config: default
+      resources-service:
+        base-config: default
+  retry:
+    retry-aspect-order: 2
+    configs:
+      default:
+        maxAttempts: 2
+        waitDuration: 3s
+        retry-exceptions:
+          - feign.RetryableException
+          - java.net.SocketTimeoutException
+          - java.io.IOException
+          - by.javaguru.jdmik15.businesstripservice.api.exception.RemoteServiceTechnicalException
+        ignore-exceptions:
+          - by.javaguru.jdmik15.businesstripservice.api.exception.RemoteServiceBusinessException
+          - jakarta.persistence.EntityNotFoundException
+    instances:
+      accounting-service:
+        base-config: default
+      resources-service:
+        base-config: default
