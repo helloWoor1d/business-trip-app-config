@@ -1,12 +1,9 @@
-server:
-  port: 8089
-
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver
-    url: ${DATABASE_URL:jdbc:postgresql://${DATABASE_HOST:localhost}:${DATABASE_PORT:5434}/${DATABASE_NAME:business-trip}}
-    username: ${DATABASE_USERNAME:admin}
-    password: ${DATABASE_PASSWORD:admin}
+    url: jdbc:postgresql://localhost:5488/test
+    username: test
+    password: test
 
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.xml
