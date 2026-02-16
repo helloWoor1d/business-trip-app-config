@@ -1,9 +1,13 @@
 server:
-  port: ${SERVER_PORT:8083}
+  port: 8089
 
 spring:
   application:
     name: business-trip-service
+
+  config:
+    activate:
+      on-profile: dev
 
   jpa:
     show-sql: true
@@ -13,7 +17,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-
 
   datasource:
     driver-class-name: org.postgresql.Driver
